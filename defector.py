@@ -116,6 +116,8 @@ class Defector(mesa.Agent):
             self.calculate_contribution_amount()
             self.calculate_invest()
             self.moral_worth_assignment()
+            # self.public_good_game.altruistic_punishment()
+            # self.public_good_game.antisocial_punishment_initiator()
             # self.altruistic_punishment()
             # self.antisocial_punishment()
         else:

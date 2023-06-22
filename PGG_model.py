@@ -92,7 +92,7 @@ class PublicGoodGame(mesa.Model):
             if isinstance(agent, Defector):
                 defector_investment += agent.calculate_invest()
 
-        investment += cooperator_investment + defector_investment
+        investment = cooperator_investment + defector_investment
         self.investment += investment
         self.common_pool += investment
 
@@ -118,7 +118,7 @@ class PublicGoodGame(mesa.Model):
 
         """
         for agent in self.schedule.agents:
-            if isinstance(agent, Defector) and agent.calculate_invest() > 2:
+            if isinstance(agent, Defector) and agent.calculate_invest() > 2:  # fixed loss amount
                 wealth = agent.wealth
                 id = agent.unique_id
                 new_agent = Cooperator(id, self, wealth)
@@ -129,7 +129,7 @@ class PublicGoodGame(mesa.Model):
                 self.schedule.remove(agent)
                 self.grid.place_agent(new_agent, (x, y))
                 self.schedule.add(new_agent)
-            elif isinstance(agent, Cooperator) and agent.calculate_invest() == 2:
+            elif isinstance(agent, Cooperator) and agent.calculate_invest() == 2:  # fixed loss amount
                 wealth = agent.wealth
                 id = agent.unique_id
                 new_agent = Defector(id, self, wealth)
@@ -145,7 +145,7 @@ class PublicGoodGame(mesa.Model):
         for agent in self.schedule.agents:
             if isinstance(agent, Cooperator) or isinstance(agent, Defector):
                 cellmates = self.grid.get_cell_list_contents([agent.pos])
-                if len(cellmates) > 1:
+                if len(cellmates) > 0:
                     other = self.random.choice(cellmates)
                     if agent.calculate_contribution_amount() > other.calculate_contribution_amount():
                         agent.wealth -= cost_punish_agent
@@ -153,35 +153,52 @@ class PublicGoodGame(mesa.Model):
                 else:
                     pass
 
-    def altruistic_punishment_frequency(self):
-        altruistic_punishment_freq = 0
-        for _ in self.schedule.agents:
-            if self.altruistic_punishment():
-                altruistic_punishment_freq += 1
-
-        return altruistic_punishment_freq
 
     def antisocial_punishment(self):
-        if self.altruistic_punishment_frequency() == self.altruistic_punishment_freq:
-            for agent in self.schedule.agents:
-                if isinstance(agent, Cooperator) or isinstance(agent, Defector):
-                    cellmates = self.grid.get_cell_list_contents([agent.pos])
-                    if len(cellmates) > 1:
-                        other = self.random.choice(cellmates)
-                        if agent.calculate_contribution_amount() < other.calculate_contribution_amount():
-                            agent.wealth -= cost_punish_agent
-                            other.wealth -= agent_punishment
-                    else:
-                        pass
+        # if self.altruistic_punishment_frequency() == self.altruistic_punishment_freq:
+        for agent in self.schedule.agents:
+            if isinstance(agent, Cooperator) or isinstance(agent, Defector):
+                cellmates = self.grid.get_cell_list_contents([agent.pos])
+                if len(cellmates) > 0:
+                    other = self.random.choice(cellmates)
+                    if agent.calculate_contribution_amount() < other.calculate_contribution_amount():
+                        agent.wealth -= cost_punish_agent
+                        other.wealth -= agent_punishment
+                else:
+                    pass
+
+    def altruistic_punishment_frequency(self):
+        ap_freq = 0
+
+        for agent in self.schedule.agents:
+            if isinstance(agent, Cooperator) or isinstance(agent, Defector):
+                if self.altruistic_punishment():
+                    ap_freq += 1
+
+        if ap_freq == 4:
+            ap_freq = 0
+
+        return ap_freq
+
+    def antisocial_punishment_initiator(self):
+        ap_freq = self.altruistic_punishment_frequency()
+
+        if ap_freq == self.altruistic_punishment_freq:
+            self.antisocial_punishment()
+        elif ap_freq > self.altruistic_punishment_freq:
+            pass
+        elif ap_freq < self.altruistic_punishment_freq:
+            pass
 
     def step(self):
+        self.datacollector.collect(self)
         self.schedule.step()
+        self.altruistic_punishment()
+        self.antisocial_punishment_initiator()
         self.agent_transform()
         self.set_investment(self.investment)
         self.calculate_payoff()
-        self.altruistic_punishment()
-        self.antisocial_punishment()
-        self.datacollector.collect(self)
+
 
 
 # Agent Count
@@ -264,36 +281,40 @@ def population_average_moral_worth(model):
 
 def money_spent_altruistic_punishment(model):
     money_spent = 0
-    for _ in model.schedule.agents:
-        if model.altruistic_punishment():
-            money_spent += cost_punish_agent
+    for agent in model.schedule.agents:
+        if isinstance(agent, Cooperator) or isinstance(agent, Defector):
+            if model.altruistic_punishment():
+                money_spent += cost_punish_agent
 
     return money_spent
 
 
 def money_lost_altruistic_punishment(model):
     money_lost = 0
-    for _ in model.schedule.agents:
-        if model.altruistic_punishment():
-            money_lost += agent_punishment
+    for agent in model.schedule.agents:
+        if isinstance(agent, Cooperator) or isinstance(agent, Defector):
+            if model.altruistic_punishment():
+                money_lost += agent_punishment
 
     return money_lost
 
 
 def money_spent_antisocial_punishment(model):
     money_spent = 0
-    for _ in model.schedule.agents:
-        if model.antisocial_punishment():
-            money_spent += cost_punish_agent
+    for agent in model.schedule.agents:
+        if isinstance(agent, Cooperator) or isinstance(agent, Defector):
+            if model.antisocial_punishment():
+                money_spent += cost_punish_agent
 
     return money_spent
 
 
 def money_lost_antisocial_punishment(model):
     money_lost = 0
-    for _ in model.schedule.agents:
-        if model.antisocial_punishment():
-            money_lost += agent_punishment
+    for agent in model.schedule.agents:
+        if isinstance(agent, Cooperator) or isinstance(agent, Defector):
+            if model.antisocial_punishment():
+                money_lost += agent_punishment
 
     return money_lost
 

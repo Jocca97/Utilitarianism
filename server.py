@@ -88,10 +88,28 @@ agent_moral_worth_graphs = BarChartModule(
 
 #Punishment graph
 
+
+punishment_money_graphs = BarChartModule(
+    [
+        {"Label": "AP Money Spent", "Color": "Purple"},
+        {"Label": "AP Money Lost", "Color": "Red"},
+        {"Label": "ASP Money Spent", "Color": "Purple"},
+        {"Label": "ASP Money Lost", "Color": "Red"},
+     ],
+    data_collector_name='datacollector',
+)
+
 punishment_graphs = BarChartModule(
     [
-        {"Label": "Altruistic Punishment", "Color": "Purple"},
-        {"Label": "Antisocial Punishment", "Color": "Red"},
+        {"Label": "Altruistic Punishment Frequency", "Color": "Purple"},
+        {"Label": "Antisocial Punishment Frequency", "Color": "Red"},
+     ],
+    data_collector_name='datacollector',
+)
+
+common_pool_graph = BarChartModule(
+    [
+        {"Label": "Common Pool Wealth", "Color": "Purple"},
      ],
     data_collector_name='datacollector',
 )
@@ -99,8 +117,8 @@ punishment_graphs = BarChartModule(
 
 # server
 server = mesa.visualization.ModularServer(PublicGoodGame,
-                                          [grid, agent_count_graphs, agent_wealth_graphs,
-                                           agent_moral_worth_graphs, punishment_graphs],
+                                          [grid, common_pool_graph, agent_count_graphs, agent_wealth_graphs,
+                                           agent_moral_worth_graphs, punishment_money_graphs, punishment_graphs],
                                           "PublicGoodGame",
                                           model_params,
                                           )

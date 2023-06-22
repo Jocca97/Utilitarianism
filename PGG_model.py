@@ -12,18 +12,18 @@ agent_punishment = 3
 
 
 class PublicGoodGame(mesa.Model):
-    def __init__(self, num_cooperators, defector_ratio, altruistic_punishment_freq,  width=10,
+    def __init__(self, num_cooperators, defector_ratio, altruistic_punishment_freq, width=10,
                  height=10):
         super().__init__(num_cooperators, defector_ratio, altruistic_punishment_freq, width,
                          height)
         self.num_cooperators = num_cooperators
         self.num_defectors = round(self.num_cooperators * defector_ratio)
         self.defector_ratio = defector_ratio
-        self.schedule = mesa.time.RandomActivation(self)
-        self.altruistic_punishment_freq = altruistic_punishment_freq
         self.common_pool = 0
         self.multiplier = 1.6
         self.investment = 0
+        self.schedule = mesa.time.RandomActivation(self)
+        self.altruistic_punishment_freq = altruistic_punishment_freq
         self.transform = self.transform_agent()
         self.payoff = self.calculate_payoff()
         self.grid = mesa.space.MultiGrid(width, height, True)
@@ -37,14 +37,19 @@ class PublicGoodGame(mesa.Model):
                              "Defector Average Moral Worth:": defector_average_moral_worth,
                              "Population Average Moral Worth": population_average_moral_worth,
                              "Altruistic Punishment": altruistic_punishment_frequency,
-                             "Antisoci  al Punishment": antisocial_punishment_frequency,
+                             "Antisocial Punishment": antisocial_punishment_frequency,
+                             "AP Money Spent": money_spent_altruistic_punishment,
+                             "AP Money Lost": money_lost_altruistic_punishment,
+                             "ASP Money Spent": money_spent_antisocial_punishment,
+                             "ASP Money Lost": money_lost_antisocial_punishment,
+                             "Common Pool Wealth": common_pool_wealth,
                              },
         )
 
         # Create agents
         for i in range(int(num_cooperators)):
             # Create Cooperator
-            moral_worth_initial_values = np.random.normal(5, 2, num_cooperators)
+            moral_worth_initial_values = np.random.normal(5, 3.5, num_cooperators)
             a = Cooperator(self.next_id(), self)
             a.moral_worth = moral_worth_initial_values[i]
 
@@ -57,7 +62,7 @@ class PublicGoodGame(mesa.Model):
 
         # Create Defector
         for i in range(int(self.num_defectors)):
-            moral_worth_initial_values = np.random.normal(5, 2, self.num_defectors)
+            moral_worth_initial_values = np.random.normal(5, 3.5, self.num_defectors)
             b = Defector(self.next_id(), self)
             b.moral_worth = moral_worth_initial_values[i]
 
@@ -136,7 +141,6 @@ class PublicGoodGame(mesa.Model):
                 self.grid.place_agent(new_agent, (x, y))
                 self.schedule.add(new_agent)
 
-
     def altruistic_punishment(self):
         for agent in self.schedule.agents:
             if isinstance(agent, Cooperator) or isinstance(agent, Defector):
@@ -169,7 +173,6 @@ class PublicGoodGame(mesa.Model):
                             other.wealth -= agent_punishment
                     else:
                         pass
-
 
     def step(self):
         self.schedule.step()
@@ -257,13 +260,50 @@ def population_average_moral_worth(model):
     return pop_avg_moral_worth
 
 
-# Punishment behavior
+# Money spent and lost within each punishment type
 
+def money_spent_altruistic_punishment(model):
+    money_spent = 0
+    for _ in model.schedule.agents:
+        if model.altruistic_punishment():
+            money_spent += cost_punish_agent
+
+    return money_spent
+
+
+def money_lost_altruistic_punishment(model):
+    money_lost = 0
+    for _ in model.schedule.agents:
+        if model.altruistic_punishment():
+            money_lost += agent_punishment
+
+    return money_lost
+
+
+def money_spent_antisocial_punishment(model):
+    money_spent = 0
+    for _ in model.schedule.agents:
+        if model.antisocial_punishment():
+            money_spent += cost_punish_agent
+
+    return money_spent
+
+
+def money_lost_antisocial_punishment(model):
+    money_lost = 0
+    for _ in model.schedule.agents:
+        if model.antisocial_punishment():
+            money_lost += agent_punishment
+
+    return money_lost
+
+
+# Frequency of each punishment type
 
 def altruistic_punishment_frequency(model):
     altruistic_frequency = 0
     for agent in model.schedule.agents:
-        if isinstance(agent, Cooperator) or isinstance(agent,Defector):
+        if isinstance(agent, Cooperator) or isinstance(agent, Defector):
             if model.altruistic_punishment():
                 altruistic_frequency += 1
 
@@ -278,3 +318,11 @@ def antisocial_punishment_frequency(model):
                 antisocial_frequency += 1
 
     return antisocial_frequency
+
+
+# Common Pool
+
+def common_pool_wealth(model):
+    cp_wealth = model.common_pool
+
+    return cp_wealth
